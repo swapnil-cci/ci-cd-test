@@ -216,11 +216,11 @@ jobs:
       - name: Validate GAV Version Format for Release Branches
         shell: bash
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          VERSION=$(grep -m1 '<version>' pom.xml | sed 's/.*<version>\(.*\)<\/version>.*/\1/' | tr -d '[:space:]')
           BRANCH="${{ inputs.branch }}"
           echo "Detected version: $VERSION"
           echo "Detected branch: $BRANCH"
-
+      
           if [[ "$BRANCH" == release/* || "$BRANCH" == hotfix/* ]]; then
             if [[ "$VERSION" == *-SNAPSHOT ]]; then
               echo "::error::❌ Release branches must NOT use SNAPSHOT versions. Found: $VERSION"
