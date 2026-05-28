@@ -14,8 +14,28 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <app.runtime>4.11.0</app.runtime>
-    <mule.maven.plugin.version>4.7.0</mule.maven.plugin.version>
+
+    <!-- Runtime -->
+    <app.runtime>4.9</app.runtime>
+    <app.releaseChannel>LTS</app.releaseChannel>
+    <app.javaVersion>17</app.javaVersion>
+    <mule.maven.plugin.version>4.1.1</mule.maven.plugin.version>
+    <munit.version>3.4.0</munit.version>
+
+    <!-- App naming — pipeline passes app.url.env as -dev / -uat / "" -->
+    <app.url.version>v1</app.url.version>
+
+    <!-- Deployment settings -->
+    <deploymentSettings.clustered>false</deploymentSettings.clustered>
+    <deploymentSettings.enforceDeployingReplicasAcrossNodes>true</deploymentSettings.enforceDeployingReplicasAcrossNodes>
+    <deploymentSettings.lastMileSecurity>false</deploymentSettings.lastMileSecurity>
+    <deploymentSettings.updateStrategy>rolling</deploymentSettings.updateStrategy>
+    <integrations.objectStoreV2>false</integrations.objectStoreV2>
+    <munits.failIfNoTests>false</munits.failIfNoTests>
+
+    <!-- Connector versions -->
+    <mule.http.connector.version>1.11.1</mule.http.connector.version>
+    <mule.sockets.connector.version>1.2.7</mule.sockets.connector.version>
   </properties>
 
   <distributionManagement>
@@ -34,30 +54,48 @@
         <artifactId>maven-clean-plugin</artifactId>
         <version>3.2.0</version>
       </plugin>
+
+      <!-- Exchange publish plugin -->
       <plugin>
         <groupId>org.mule.tools.maven</groupId>
-        <artifactId>mule-maven-plugin</artifactId>
-        <version>${mule.maven.plugin.version}</version>
-        <extensions>true</extensions>
+        <artifactId>exchange-mule-maven-plugin</artifactId>
+        <version>0.0.23</version>
+        <inherited>false</inherited>
+        <executions>
+          <execution>
+            <id>validate</id>
+            <phase>validate</phase>
+            <goals><goal>exchange-pre-deploy</goal></goals>
+          </execution>
+          <execution>
+            <id>deploy</id>
+            <phase>deploy</phase>
+            <goals><goal>exchange-deploy</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- MUnit -->
+      <plugin>
+        <groupId>com.mulesoft.munit.tools</groupId>
+        <artifactId>munit-maven-plugin</artifactId>
+        <version>${munit.version}</version>
+        <executions>
+          <execution>
+            <id>test</id>
+            <phase>test</phase>
+            <goals>
+              <goal>test</goal>
+              <goal>coverage-report</goal>
+            </goals>
+          </execution>
+        </executions>
         <configuration>
-          <cloudhub2Deployment>
-            <uri>https://anypoint.mulesoft.com</uri>
-            <provider>MC</provider>
-            <environment>${mule.env}</environment>
-            <target>${anypoint.privatespace.name}</target>
-            <applicationName>${project.artifactId}${app.url.env}</applicationName>
-            <vCores>${app.vCores}</vCores>
-            <replicas>${app.replicas}</replicas>
-            <connectedAppClientId>${connectedAppClientId}</connectedAppClientId>
-            <connectedAppClientSecret>${connectedAppClientSecret}</connectedAppClientSecret>
-            <connectedAppGrantType>${connectedAppGrantType}</connectedAppGrantType>
-            <properties>
-              <mule.env>${mule.env}</mule.env>
-              <mule.key>${mule.key}</mule.key>
-              <anypoint.platform.client_id>${anypoint.platform.client_id}</anypoint.platform.client_id>
-              <anypoint.platform.client_secret>${anypoint.platform.client_secret}</anypoint.platform.client_secret>
-            </properties>
-          </cloudhub2Deployment>
+          <failIfNoTests>${munits.failIfNoTests}</failIfNoTests>
+          <coverage>
+            <runCoverage>true</runCoverage>
+            <failBuild>false</failBuild>
+          </coverage>
         </configuration>
       </plugin>
     </plugins>
@@ -67,13 +105,13 @@
     <dependency>
       <groupId>org.mule.connectors</groupId>
       <artifactId>mule-http-connector</artifactId>
-      <version>1.11.1</version>
+      <version>${mule.http.connector.version}</version>
       <classifier>mule-plugin</classifier>
     </dependency>
     <dependency>
       <groupId>org.mule.connectors</groupId>
       <artifactId>mule-sockets-connector</artifactId>
-      <version>1.2.7</version>
+      <version>${mule.sockets.connector.version}</version>
       <classifier>mule-plugin</classifier>
     </dependency>
   </dependencies>
@@ -101,8 +139,8 @@
     <pluginRepository>
       <id>MuleRepository</id>
       <name>MuleSoft EE Repository</name>
-      <layout>default</layout>
       <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/</url>
+      <layout>default</layout>
       <releases><enabled>true</enabled></releases>
       <snapshots><enabled>false</enabled></snapshots>
     </pluginRepository>
@@ -119,9 +157,110 @@
   <profiles>
     <profile>
       <id>non-experience-service</id>
+      <activation><activeByDefault>true</activeByDefault></activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.mule.tools.maven</groupId>
+            <artifactId>mule-maven-plugin</artifactId>
+            <version>${mule.maven.plugin.version}</version>
+            <extensions>true</extensions>
+            <configuration>
+              <cloudhub2Deployment>
+                <uri>https://anypoint.mulesoft.com</uri>
+                <muleVersion>${app.runtime}</muleVersion>
+                <releaseChannel>${app.releaseChannel}</releaseChannel>
+                <javaVersion>${app.javaVersion}</javaVersion>
+                <applicationName>${project.artifactId}${app.url.env}</applicationName>
+                <target>${anypoint.privatespace.name}</target>
+                <environment>${environment}</environment>
+                <provider>MC</provider>
+                <replicas>${app.replicas}</replicas>
+                <vCores>${app.vCores}</vCores>
+                <connectedAppClientId>${connectedAppClientId}</connectedAppClientId>
+                <connectedAppClientSecret>${connectedAppClientSecret}</connectedAppClientSecret>
+                <connectedAppGrantType>${connectedAppGrantType}</connectedAppGrantType>
+                <properties>
+                  <mule.env>${mule.env}</mule.env>
+                  <anypoint.platform.client_id>${anypoint.platform.client_id}</anypoint.platform.client_id>
+                </properties>
+                <secureProperties>
+                  <mule.key>${mule.key}</mule.key>
+                  <anypoint.platform.client_secret>${anypoint.platform.client_secret}</anypoint.platform.client_secret>
+                </secureProperties>
+                <deploymentSettings>
+                  <enforceDeployingReplicasAcrossNodes>${deploymentSettings.enforceDeployingReplicasAcrossNodes}</enforceDeployingReplicasAcrossNodes>
+                  <updateStrategy>${deploymentSettings.updateStrategy}</updateStrategy>
+                  <clustered>${deploymentSettings.clustered}</clustered>
+                  <lastMileSecurity>${deploymentSettings.lastMileSecurity}</lastMileSecurity>
+                </deploymentSettings>
+                <integrations>
+                  <services>
+                    <objectStoreV2>
+                      <enabled>${integrations.objectStoreV2}</enabled>
+                    </objectStoreV2>
+                  </services>
+                </integrations>
+              </cloudhub2Deployment>
+              <classifier>mule-application</classifier>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
+
     <profile>
       <id>experience-service</id>
+      <activation><activeByDefault>false</activeByDefault></activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.mule.tools.maven</groupId>
+            <artifactId>mule-maven-plugin</artifactId>
+            <version>${mule.maven.plugin.version}</version>
+            <extensions>true</extensions>
+            <configuration>
+              <cloudhub2Deployment>
+                <uri>https://anypoint.mulesoft.com</uri>
+                <muleVersion>${app.runtime}</muleVersion>
+                <releaseChannel>${app.releaseChannel}</releaseChannel>
+                <javaVersion>${app.javaVersion}</javaVersion>
+                <applicationName>${project.artifactId}${app.url.env}</applicationName>
+                <target>${anypoint.privatespace.name}</target>
+                <environment>${environment}</environment>
+                <provider>MC</provider>
+                <replicas>${app.replicas}</replicas>
+                <vCores>${app.vCores}</vCores>
+                <connectedAppClientId>${connectedAppClientId}</connectedAppClientId>
+                <connectedAppClientSecret>${connectedAppClientSecret}</connectedAppClientSecret>
+                <connectedAppGrantType>${connectedAppGrantType}</connectedAppGrantType>
+                <properties>
+                  <mule.env>${mule.env}</mule.env>
+                  <anypoint.platform.client_id>${anypoint.platform.client_id}</anypoint.platform.client_id>
+                </properties>
+                <secureProperties>
+                  <mule.key>${mule.key}</mule.key>
+                  <anypoint.platform.client_secret>${anypoint.platform.client_secret}</anypoint.platform.client_secret>
+                </secureProperties>
+                <deploymentSettings>
+                  <enforceDeployingReplicasAcrossNodes>${deploymentSettings.enforceDeployingReplicasAcrossNodes}</enforceDeployingReplicasAcrossNodes>
+                  <updateStrategy>${deploymentSettings.updateStrategy}</updateStrategy>
+                  <clustered>${deploymentSettings.clustered}</clustered>
+                  <lastMileSecurity>${deploymentSettings.lastMileSecurity}</lastMileSecurity>
+                </deploymentSettings>
+                <integrations>
+                  <services>
+                    <objectStoreV2>
+                      <enabled>${integrations.objectStoreV2}</enabled>
+                    </objectStoreV2>
+                  </services>
+                </integrations>
+              </cloudhub2Deployment>
+              <classifier>mule-application</classifier>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 
