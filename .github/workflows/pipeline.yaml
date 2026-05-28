@@ -172,7 +172,7 @@ jobs:
                 "password": "${{ env.GLOBAL_CONNECTED_APP_STRING }}"
               },
               {
-                "id": "MuleRepository",
+                "id": "mulesoft-releases",
                 "username": "${{ env.GLOBAL_NEXUS_USERNAME }}",
                 "password": "${{ env.GLOBAL_NEXUS_PASSWORD }}"
               }
@@ -186,7 +186,7 @@ jobs:
                 "snapshots": { "enabled": "true" }
               },
               {
-                "id": "MuleRepository",
+                "id": "mulesoft-releases",
                 "url": "https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/",
                 "releases": { "enabled": "true" },
                 "snapshots": { "enabled": "true" }
