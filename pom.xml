@@ -18,7 +18,6 @@
     <mule.maven.plugin.version>4.7.0</mule.maven.plugin.version>
   </properties>
 
-  <!-- FIX 2: tells mvn deploy where to publish -->
   <distributionManagement>
     <repository>
       <id>anypoint-exchange-v3</id>
@@ -40,7 +39,6 @@
         <artifactId>mule-maven-plugin</artifactId>
         <version>${mule.maven.plugin.version}</version>
         <extensions>true</extensions>
-        <!-- FIX 3: CloudHub 2.0 deploy config -->
         <configuration>
           <cloudhub2Deployment>
             <uri>https://anypoint.mulesoft.com</uri>
@@ -86,13 +84,15 @@
       <name>Anypoint Exchange</name>
       <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
       <layout>default</layout>
+      <releases><enabled>true</enabled></releases>
+      <snapshots><enabled>true</enabled></snapshots>
     </repository>
-    <!-- FIX 1: renamed to match pipeline's injected credentials -->
     <repository>
       <id>MuleRepository</id>
-      <name>MuleSoft Releases Repository</name>
-      <url>https://repository.mulesoft.org/nexus/repository/releases/</url>
+      <name>MuleSoft EE Repository</name>
+      <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/</url>
       <layout>default</layout>
+      <releases><enabled>true</enabled></releases>
       <snapshots><enabled>false</enabled></snapshots>
     </repository>
   </repositories>
@@ -100,14 +100,22 @@
   <pluginRepositories>
     <pluginRepository>
       <id>MuleRepository</id>
-      <name>MuleSoft Releases Repository</name>
+      <name>MuleSoft EE Repository</name>
       <layout>default</layout>
-      <url>https://repository.mulesoft.org/nexus/repository/releases/</url>
+      <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/</url>
+      <releases><enabled>true</enabled></releases>
       <snapshots><enabled>false</enabled></snapshots>
+    </pluginRepository>
+    <pluginRepository>
+      <id>anypoint-exchange-v3</id>
+      <name>Anypoint Exchange</name>
+      <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+      <layout>default</layout>
+      <releases><enabled>true</enabled></releases>
+      <snapshots><enabled>true</enabled></snapshots>
     </pluginRepository>
   </pluginRepositories>
 
-  <!-- FIX 4: profiles pipeline expects -->
   <profiles>
     <profile>
       <id>non-experience-service</id>
