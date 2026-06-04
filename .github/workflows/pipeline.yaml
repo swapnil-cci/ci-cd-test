@@ -51,16 +51,16 @@ on:
         type: choice
         options:
           - "N/A"
-          - "us-east-1"
-          - "us-east-2"
-          - "us-west-1"
-          - "us-west-2"
-          - "eu-west-1"
-          - "eu-central-1"
-          - "ap-southeast-1"
-          - "ap-southeast-2"
-          - "ap-northeast-1"
-          - "ca-central-1"
+          - "cloudhub-us-east-1"
+          - "cloudhub-us-east-2"
+          - "cloudhub-us-west-1"
+          - "cloudhub-us-west-2"
+          - "cloudhub-eu-west-1"
+          - "cloudhub-eu-central-1"
+          - "cloudhub-ap-southeast-1"
+          - "cloudhub-ap-southeast-2"
+          - "cloudhub-ap-northeast-1"
+          - "cloudhub-ca-central-1"
       vCore:
         description: "vCore on Deployment Target"
         required: true
