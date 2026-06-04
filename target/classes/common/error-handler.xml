@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<error-handler name="common-error-handler" doc:id="1b26d14f-3d85-424f-bb7a-38b07de60c1a" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="477c2fad-05f7-4551-ab04-d28a5d381bcc" type="ANY">
+			<ee:transform doc:name="Error Message" doc:id="308714a7-05e8-4d9f-b34a-e9ae479ea0a2" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "appName": app.name,
+    "errorCode": payload.error.code,
+    "errorReason": payload.error.reason,
+    "errorMessage": payload.error.message,
+    "correlationId": if ( vars.correlationId != null ) vars.correlationId else correlationId,
+    "timeStamp": if ( vars.timeStamp != null ) vars.timeStamp else now(),
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<logger level="ERROR" doc:name="Error Message" doc:id="384cc63c-d345-41cd-a4a1-001749bae917" message="#[payload]"/>
+		</on-error-propagate>
+	</error-handler>
+</mule>

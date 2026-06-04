@@ -1,0 +1,44 @@
+{
+  "configs": [
+    "development-template.xml",
+    "implementation/{method}-{feature}.xml",
+    "common/global.xml",
+    "common/error-handler.xml"
+  ],
+  "secureProperties": [],
+  "supportedJavaVersions": [],
+  "redeploymentEnabled": true,
+  "name": "cc7e30c5-ce07-44fb-aeb5-15d6ea94cb81:Api-Development-Template:1.0.0",
+  "minMuleVersion": "4.9.0",
+  "requiredProduct": "MULE_EE",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "exportedPackages": [],
+      "exportedResources": [
+        "api/development-template.raml",
+        "api/examples/healthCheck.json",
+        "application-types.xml",
+        "common/error-handler.xml",
+        "common/global.xml",
+        "development-template.xml",
+        "dwl/p-health-check.dwl",
+        "implementation/{method}-{feature}.xml",
+        "log4j2.xml",
+        "properties/common/common.yaml",
+        "properties/config-dev.yaml",
+        "properties/config-local.yaml",
+        "properties/config-prod.yaml",
+        "properties/config-qa.yaml",
+        "properties/secure/config-dev-secure.yaml",
+        "properties/secure/config-local-secure.yaml",
+        "properties/secure/config-prod-secure.yaml",
+        "properties/secure/config-qa-secure.yaml"
+      ]
+    }
+  },
+  "bundleDescriptorLoader": {
+    "id": "mule",
+    "attributes": {}
+  }
+}

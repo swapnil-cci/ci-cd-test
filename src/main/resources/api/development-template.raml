@@ -1,0 +1,12 @@
+#%RAML 1.0
+title: API Development Template
+description: This Template is for resuability and standardization purpose
+
+/healthCheck:
+  get:
+    description: This resource is responsible for checking the health of the API
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include ../api/examples/healthCheck.json
