@@ -11,7 +11,6 @@ env:
   GLOBAL_GRANT_TYPE: ${{ secrets.GRANT_TYPE }}
   GLOBAL_ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
   GLOBAL_PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
-  GLOBAL_TARGET: ${{ vars.TARGET }}
   GLOBAL_ENVIRONMENT: "${{ inputs.environment }}"
 
 on:
@@ -34,6 +33,34 @@ on:
           - DEV
           - UAT
           - PROD
+      deploymentType:
+        description: "Deployment Target Type"
+        required: true
+        type: choice
+        options:
+          - "Shared Space"
+          - "Private Space"
+      deploymentTarget:
+        description: "Deployment Target Name (for Private Space enter exact name from Anypoint)"
+        required: true
+        default: 'Shared Space'
+        type: string
+      deploymentRegion:
+        description: "Deployment Region (only for Shared Space, select N/A for Private Space)"
+        required: true
+        type: choice
+        options:
+          - "N/A"
+          - "us-east-1"
+          - "us-east-2"
+          - "us-west-1"
+          - "us-west-2"
+          - "eu-west-1"
+          - "eu-central-1"
+          - "ap-southeast-1"
+          - "ap-southeast-2"
+          - "ap-northeast-1"
+          - "ca-central-1"
       vCore:
         description: "vCore on Deployment Target"
         required: true
@@ -80,9 +107,15 @@ jobs:
 
           BRANCH="${{ inputs.branch }}"
           ENV="${{ inputs.environment }}"
+          DEPLOY_TYPE="${{ inputs.deploymentType }}"
+          REGION="${{ inputs.deploymentRegion }}"
+          TARGET="${{ inputs.deploymentTarget }}"
 
           echo "Branch: $BRANCH"
           echo "Environment: $ENV"
+          echo "Deployment Type: $DEPLOY_TYPE"
+          echo "Deployment Target: $TARGET"
+          echo "Deployment Region: $REGION"
 
           case "$ENV" in
             DEV)
@@ -109,6 +142,18 @@ jobs:
               exit 1
               ;;
           esac
+
+          if [[ "$DEPLOY_TYPE" == "Shared Space" && "$REGION" == "N/A" ]]; then
+            echo "::error::❌ Deployment Region is required for Shared Space. Please select a valid region."
+            exit 1
+          fi
+
+          if [[ "$DEPLOY_TYPE" == "Private Space" && "$TARGET" == "Shared Space" ]]; then
+            echo "::error::❌ Please enter the exact Private Space name from Anypoint Platform in the Deployment Target field."
+            exit 1
+          fi
+
+          echo "✅ All inputs are valid."
 
   Build-Publish-Deploy:
     needs: Validate-Inputs
@@ -213,19 +258,31 @@ jobs:
             echo "APP_TAG=" >> $GITHUB_ENV
           fi
 
+      - name: Set Deployment Target Properties
+        shell: bash
+        run: |
+          DEPLOY_TYPE="${{ inputs.deploymentType }}"
+          TARGET="${{ inputs.deploymentTarget }}"
+          REGION="${{ inputs.deploymentRegion }}"
+
+          if [[ "$DEPLOY_TYPE" == "Shared Space" ]]; then
+            echo "DEPLOYMENT_TARGET=$TARGET" >> $GITHUB_ENV
+            echo "DEPLOYMENT_REGION=$REGION" >> $GITHUB_ENV
+            echo "IS_PRIVATE_SPACE=false" >> $GITHUB_ENV
+            echo "✅ Shared Space | Target: $TARGET | Region: $REGION"
+          elif [[ "$DEPLOY_TYPE" == "Private Space" ]]; then
+            echo "DEPLOYMENT_TARGET=$TARGET" >> $GITHUB_ENV
+            echo "DEPLOYMENT_REGION=" >> $GITHUB_ENV
+            echo "IS_PRIVATE_SPACE=true" >> $GITHUB_ENV
+            echo "✅ Private Space | Target: $TARGET"
+          fi
+
       - name: Validate GAV Version Format for Release Branches
         shell: bash
         run: |
-          echo "--- Debug: Maven version evaluation ---"
-          echo "Current directory: $(pwd)"
-          echo "Files in current dir: $(ls)"
-          echo "Raw maven output (without -q):"
-          mvn help:evaluate -Dexpression=project.version -DforceStdout
-
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           BRANCH="${{ inputs.branch }}"
 
-          echo "--- Validation ---"
           echo "Detected version: '$VERSION'"
           echo "Version length: ${#VERSION}"
           echo "Detected branch: '$BRANCH'"
@@ -267,7 +324,13 @@ jobs:
 
       - name: Build with Maven
         if: inputs.environment != 'PROD'
+        shell: bash
         run: |
+          REGION_PROP=""
+          if [[ "${{ env.IS_PRIVATE_SPACE }}" == "false" ]]; then
+            REGION_PROP="-Danypoint.deployment.region=${{ env.DEPLOYMENT_REGION }}"
+          fi
+
           mvn -B clean package -DskipTests \
             -D"mule.env"="${{ env.GLOBAL_ENVIRONMENT }}" \
             -D"environment"="${{ env.GLOBAL_ENVIRONMENT }}" \
@@ -275,7 +338,8 @@ jobs:
             -D"app.vCores"="${{ inputs.vCore }}" \
             -D"app.replicas"="${{ inputs.replicas }}" \
             -D"app.url.env"="${{ env.APP_TAG }}" \
-            -D"anypoint.privatespace.name"="${{ env.GLOBAL_TARGET }}" \
+            -D"anypoint.deployment.target"="${{ env.DEPLOYMENT_TARGET }}" \
+            $REGION_PROP \
             -D"connectedAppClientId"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_ID }}" \
             -D"connectedAppClientSecret"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_SECRET }}" \
             -D"connectedAppGrantType"="${{ env.GLOBAL_GRANT_TYPE }}" \
@@ -316,7 +380,13 @@ jobs:
 
       - name: Deploy to Exchange (Skip For PROD)
         if: inputs.environment != 'PROD'
+        shell: bash
         run: |
+          REGION_PROP=""
+          if [[ "${{ env.IS_PRIVATE_SPACE }}" == "false" ]]; then
+            REGION_PROP="-Danypoint.deployment.region=${{ env.DEPLOYMENT_REGION }}"
+          fi
+
           mvn clean deploy -DskipTests \
             -D"mule.env"="${{ env.GLOBAL_ENVIRONMENT }}" \
             -D"environment"="${{ env.GLOBAL_ENVIRONMENT }}" \
@@ -324,14 +394,21 @@ jobs:
             -D"app.vCores"="${{ inputs.vCore }}" \
             -D"app.replicas"="${{ inputs.replicas }}" \
             -D"app.url.env"="${{ env.APP_TAG }}" \
-            -D"anypoint.privatespace.name"="${{ env.GLOBAL_TARGET }}" \
+            -D"anypoint.deployment.target"="${{ env.DEPLOYMENT_TARGET }}" \
+            $REGION_PROP \
             -D"connectedAppClientId"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_ID }}" \
             -D"connectedAppClientSecret"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_SECRET }}" \
             -D"connectedAppGrantType"="${{ env.GLOBAL_GRANT_TYPE }}" \
             -P"${{ env.MAVEN_PROFILE }}"
 
       - name: Deploy to ${{ inputs.environment }}
+        shell: bash
         run: |
+          REGION_PROP=""
+          if [[ "${{ env.IS_PRIVATE_SPACE }}" == "false" ]]; then
+            REGION_PROP="-Danypoint.deployment.region=${{ env.DEPLOYMENT_REGION }}"
+          fi
+
           mvn clean deploy -DskipTests -DmuleDeploy \
             -D"mule.env"="${{ env.GLOBAL_ENVIRONMENT }}" \
             -D"environment"="${{ env.GLOBAL_ENVIRONMENT }}" \
@@ -339,7 +416,8 @@ jobs:
             -D"app.vCores"="${{ inputs.vCore }}" \
             -D"app.replicas"="${{ inputs.replicas }}" \
             -D"app.url.env"="${{ env.APP_TAG }}" \
-            -D"anypoint.privatespace.name"="${{ env.GLOBAL_TARGET }}" \
+            -D"anypoint.deployment.target"="${{ env.DEPLOYMENT_TARGET }}" \
+            $REGION_PROP \
             -D"connectedAppClientId"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_ID }}" \
             -D"connectedAppClientSecret"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_SECRET }}" \
             -D"connectedAppGrantType"="${{ env.GLOBAL_GRANT_TYPE }}" \
