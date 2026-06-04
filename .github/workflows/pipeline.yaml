@@ -416,7 +416,7 @@ jobs:
             REGION_PROP="-Danypoint.deployment.region=${{ env.DEPLOYMENT_REGION }}"
           fi
 
-          mvn clean deploy -DskipTests -DmuleDeploy \
+          mvn clean deploy -DskipTests -DmuleDeploy -e \
             -D"mule.env"="${{ env.GLOBAL_ENVIRONMENT }}" \
             -D"environment"="${{ env.GLOBAL_ENVIRONMENT }}" \
             -D"mule.key"="${{ env.GLOBAL_ENCRYPTION_KEY }}" \
