@@ -216,10 +216,24 @@ jobs:
       - name: Validate GAV Version Format for Release Branches
         shell: bash
         run: |
+          echo "--- Debug: Maven version evaluation ---"
+          echo "Current directory: $(pwd)"
+          echo "Files in current dir: $(ls)"
+          echo "Raw maven output (without -q):"
+          mvn help:evaluate -Dexpression=project.version -DforceStdout
+
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           BRANCH="${{ inputs.branch }}"
-          echo "Detected version: $VERSION"
-          echo "Detected branch: $BRANCH"
+
+          echo "--- Validation ---"
+          echo "Detected version: '$VERSION'"
+          echo "Version length: ${#VERSION}"
+          echo "Detected branch: '$BRANCH'"
+
+          if [[ -z "$VERSION" ]]; then
+            echo "::error::❌ Maven returned empty version. Check pom.xml is present in root."
+            exit 1
+          fi
 
           if [[ "$BRANCH" == release/* || "$BRANCH" == hotfix/* ]]; then
             if [[ "$VERSION" == *-SNAPSHOT ]]; then
