@@ -6,7 +6,7 @@
 
 	<groupId>cc7e30c5-ce07-44fb-aeb5-15d6ea94cb81</groupId>
 	<artifactId>Api-Development-Template</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<packaging>mule-application</packaging>
 	<name>api-development-template-1.0.0-mule-application-template</name>
 	<description>This is the template project for API development</description>
