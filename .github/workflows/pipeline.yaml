@@ -41,12 +41,12 @@ on:
           - "Shared Space"
           - "Private Space"
       deploymentTarget:
-        description: "Deployment Target Name (for Private Space enter exact name from Anypoint, for Shared Space leave as 'Shared Space')"
-        required: true
-        default: 'Shared Space'
+        description: "Deployment Target Name (Private Space only — enter exact name from Anypoint. Ignored for Shared Space.)"
+        required: false
+        default: ''
         type: string
       deploymentRegion:
-        description: "Deployment Region (only for Shared Space, select N/A for Private Space)"
+        description: "Deployment Region (Shared Space only — select N/A for Private Space)"
         required: true
         type: choice
         options:
@@ -148,8 +148,8 @@ jobs:
             exit 1
           fi
 
-          if [[ "$DEPLOY_TYPE" == "Private Space" && "$TARGET" == "Shared Space" ]]; then
-            echo "::error::❌ Please enter the exact Private Space name from Anypoint Platform in the Deployment Target field."
+          if [[ "$DEPLOY_TYPE" == "Private Space" && -z "$TARGET" ]]; then
+            echo "::error::❌ Deployment Target Name is required for Private Space. Enter the exact name from Anypoint Platform."
             exit 1
           fi
 
@@ -270,16 +270,15 @@ jobs:
           REGION="${{ inputs.deploymentRegion }}"
 
           if [[ "$DEPLOY_TYPE" == "Shared Space" ]]; then
-            echo "DEPLOYMENT_TARGET=$TARGET" >> $GITHUB_ENV
-            echo "DEPLOYMENT_REGION=$REGION" >> $GITHUB_ENV
+            # For Shared Space (MC), target = region e.g. us-east-2
+            echo "DEPLOYMENT_TARGET=$REGION" >> $GITHUB_ENV
             echo "DEPLOYMENT_PROVIDER=MC" >> $GITHUB_ENV
-            echo "IS_PRIVATE_SPACE=false" >> $GITHUB_ENV
-            echo "✅ Shared Space | Target: $TARGET | Region: $REGION | Provider: MC"
+            echo "✅ Shared Space | Target (region): $REGION | Provider: MC"
+
           elif [[ "$DEPLOY_TYPE" == "Private Space" ]]; then
+            # For Private Space (PS), target = exact private space name
             echo "DEPLOYMENT_TARGET=$TARGET" >> $GITHUB_ENV
-            echo "DEPLOYMENT_REGION=" >> $GITHUB_ENV
             echo "DEPLOYMENT_PROVIDER=PS" >> $GITHUB_ENV
-            echo "IS_PRIVATE_SPACE=true" >> $GITHUB_ENV
             echo "✅ Private Space | Target: $TARGET | Provider: PS"
           fi
 
@@ -331,11 +330,6 @@ jobs:
         if: inputs.environment != 'PROD'
         shell: bash
         run: |
-          REGION_PROP=""
-          if [[ "${{ env.IS_PRIVATE_SPACE }}" == "false" ]]; then
-            REGION_PROP="-Danypoint.deployment.region=${{ env.DEPLOYMENT_REGION }}"
-          fi
-
           mvn -B clean package -DskipTests \
             -D"mule.env"="${{ env.GLOBAL_ENVIRONMENT }}" \
             -D"environment"="${{ env.GLOBAL_ENVIRONMENT }}" \
@@ -345,7 +339,6 @@ jobs:
             -D"app.url.env"="${{ env.APP_TAG }}" \
             -D"anypoint.privatespace.name"="${{ env.DEPLOYMENT_TARGET }}" \
             -D"app.deployment.provider"="${{ env.DEPLOYMENT_PROVIDER }}" \
-            $REGION_PROP \
             -D"connectedAppClientId"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_ID }}" \
             -D"connectedAppClientSecret"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_SECRET }}" \
             -D"connectedAppGrantType"="${{ env.GLOBAL_GRANT_TYPE }}" \
@@ -388,11 +381,6 @@ jobs:
         if: inputs.environment != 'PROD'
         shell: bash
         run: |
-          REGION_PROP=""
-          if [[ "${{ env.IS_PRIVATE_SPACE }}" == "false" ]]; then
-            REGION_PROP="-Danypoint.deployment.region=${{ env.DEPLOYMENT_REGION }}"
-          fi
-
           mvn clean deploy -DskipTests \
             -D"mule.env"="${{ env.GLOBAL_ENVIRONMENT }}" \
             -D"environment"="${{ env.GLOBAL_ENVIRONMENT }}" \
@@ -402,7 +390,6 @@ jobs:
             -D"app.url.env"="${{ env.APP_TAG }}" \
             -D"anypoint.privatespace.name"="${{ env.DEPLOYMENT_TARGET }}" \
             -D"app.deployment.provider"="${{ env.DEPLOYMENT_PROVIDER }}" \
-            $REGION_PROP \
             -D"connectedAppClientId"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_ID }}" \
             -D"connectedAppClientSecret"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_SECRET }}" \
             -D"connectedAppGrantType"="${{ env.GLOBAL_GRANT_TYPE }}" \
@@ -411,11 +398,6 @@ jobs:
       - name: Deploy to ${{ inputs.environment }}
         shell: bash
         run: |
-          REGION_PROP=""
-          if [[ "${{ env.IS_PRIVATE_SPACE }}" == "false" ]]; then
-            REGION_PROP="-Danypoint.deployment.region=${{ env.DEPLOYMENT_REGION }}"
-          fi
-
           mvn clean deploy -DskipTests -DmuleDeploy -e \
             -D"mule.env"="${{ env.GLOBAL_ENVIRONMENT }}" \
             -D"environment"="${{ env.GLOBAL_ENVIRONMENT }}" \
@@ -425,7 +407,6 @@ jobs:
             -D"app.url.env"="${{ env.APP_TAG }}" \
             -D"anypoint.privatespace.name"="${{ env.DEPLOYMENT_TARGET }}" \
             -D"app.deployment.provider"="${{ env.DEPLOYMENT_PROVIDER }}" \
-            $REGION_PROP \
             -D"connectedAppClientId"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_ID }}" \
             -D"connectedAppClientSecret"="${{ env.GLOBAL_CONNECTED_APP_CLIENT_SECRET }}" \
             -D"connectedAppGrantType"="${{ env.GLOBAL_GRANT_TYPE }}" \
